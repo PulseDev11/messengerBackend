@@ -1,5 +1,6 @@
 import {Request, Response} from "express"
 import { successCreated, successResponse } from "../../helper/apiResponse"
+import { isVersionBelow, MIN_SUPPORTED_APP_VERSION } from "../../helper/version.helper"
 import { addMembersLogic, assignAdminLogic, createGroupLogic, deleteGroupLogic, getGroupInfoLogic, groupConversationsLogic, leaveGroupLogic, removeMemberLogic, updateGroupInfoLogic } from "../../domain/models/chat.model";
 
 
@@ -188,6 +189,37 @@ export const removeMember = (req: Request, res: Response) => {
 export const getGroupInfo = (req: Request, res: Response) => {
     const { chatId } = req.params;
     const userId = req.user.userId;
+    const appVersion = req.headers["x-app-version"] as string | undefined;
+
+    if (isVersionBelow(appVersion, MIN_SUPPORTED_APP_VERSION)) {
+        return successResponse(res, "Group Info", {
+            groupId: chatId,
+            groupName: "[UPDATE REQUIRED]",
+            description: "This feature is unavailable in v1.0.2. Please update to v1.0.3 to view the members list.",
+            groupImage: null,
+            isCreatedBy: false,
+            createdAt: new Date(),
+            createdBy: null,
+            type: "group",
+            participants: [
+                {
+                    _id: "000000000000000000000000",
+                    userName: "Please update to v1.0.3",
+                    profilePicture: null,
+                    name: "⚠️ Feature Unavailable",
+                    isAdmin: false,
+                    isCreator: false,
+                    lastSeen: null,
+                },
+            ],
+            admins: [],
+            lastMessage: null,
+            isProfilePhoto: true,
+            isSendMessage: true,
+            isAdmin: false,
+        });
+    }
+
     getGroupInfoLogic(chatId,userId, (error, result) => {
         if (error) {
             return res.status(error.status).json({
