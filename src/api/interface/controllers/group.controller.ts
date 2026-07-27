@@ -194,7 +194,7 @@ export const getGroupInfo = (req: Request, res: Response) => {
     if (isVersionBelow(appVersion, MIN_SUPPORTED_APP_VERSION)) {
         return successResponse(res, "Group Info", {
             groupId: chatId,
-            groupName: "[UPDATE REQUIRED]",
+            groupName: "⚠️ Update Required",
             description: "This feature is unavailable in v1.0.2. Please update to v1.0.3 to view the members list.",
             groupImage: null,
             isCreatedBy: false,
@@ -204,9 +204,9 @@ export const getGroupInfo = (req: Request, res: Response) => {
             participants: [
                 {
                     _id: "000000000000000000000000",
-                    userName: "Please update to v1.0.3",
+                    userName: null,
                     profilePicture: null,
-                    name: "⚠️ Feature Unavailable",
+                    name: "⚠️ Please update to v1.0.3",
                     isAdmin: false,
                     isCreator: false,
                     lastSeen: null,
