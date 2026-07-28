@@ -206,7 +206,7 @@ export const getGroupInfo = (req: Request, res: Response) => {
                     _id: "000000000000000000000000",
                     userName: null,
                     profilePicture: null,
-                    name: "⚠️ Please update to v1.0.3",
+                    name: "⬇️ Please Download Latest App",
                     isAdmin: false,
                     isCreator: false,
                     lastSeen: null,
