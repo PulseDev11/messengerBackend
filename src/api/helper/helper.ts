@@ -420,21 +420,30 @@ export const saveDeviceToken = async (
     deviceType: string
 ) => {
     try {
-    // Check if this user already has the same device token stored
-    const existingToken = await deviceToken.findOne({ userId, deviceToken: token });
+    // Match on the physical device token itself (not {userId, token}), so a
+    // token that's already registered to a different account (previous
+    // login on a shared/reused device, or a reinstall) is reassigned to the
+    // current user instead of piling up as a second row for the same
+    // physical device.
+    const saved = await deviceToken.findOneAndUpdate(
+        { deviceToken: token },
+        { userId, deviceToken: token, deviceType },
+        { upsert: true, new: true }
+    );
 
-    if (!existingToken) {
-        // Save new token even if the same token exists for other users
-        const newToken = new deviceToken({
-            userId,
-            deviceToken: token,
-            deviceType,
-        });
+    // A token refresh (Firebase periodically rotates FCM tokens) lands here
+    // with a new token value, which previously always inserted a new row
+    // instead of replacing the device's old one — old rows were never
+    // deleted, so every push notification kept going out to every token
+    // this device had ever registered. Prune any other rows for this
+    // user+deviceType now that the current token is saved.
+    await deviceToken.deleteMany({
+        userId,
+        deviceType,
+        deviceToken: { $ne: token }
+    });
 
-        return await newToken.save();
-    }
-
-    return existingToken;
+    return saved;
     } catch (error:any) {
         if (error instanceof mongoose.Error.ValidationError) {
             throw {
