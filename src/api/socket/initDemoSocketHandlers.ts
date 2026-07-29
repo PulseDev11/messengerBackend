@@ -2033,18 +2033,19 @@ socket.on("mark_message_as_read", async (data: { chatId: string; userId: string,
         // Notify senders that their messages have been read
         await Promise.all(
             senders.map(async (sender: any) => {
-                const senderSocketId = userSocketMap[sender._id.toString()];
-                if (senderSocketId) {
-                    loggerMsg(`Notifying sender ${sender._id.toString()} (Socket ID: ${senderSocketId})`, "debug");
-
-                    // Emit 'message_status' to sender
-                    io.to(senderSocketId).emit("message_status", {
-                        chatId,
-                        userId,
-                        status: "read",
-                        lastMessageId
-                    });
-                }
+                // Emit 'message_status' to sender's room (joined on
+                // 'joinChat' as socket.join(userId)) rather than looking up
+                // userSocketMap[sender._id.toString()] — `sender` is a raw
+                // ObjectId here (chat.participants isn't populated), so it
+                // has no `._id` and that lookup threw on every call,
+                // silently swallowed by the outer catch below, meaning the
+                // sender never got a live read-receipt update.
+                io.to(sender.toString()).emit("message_status", {
+                    chatId,
+                    userId,
+                    status: "read",
+                    lastMessageId
+                });
             })
         );
     } catch (error) {
@@ -3833,24 +3834,9 @@ socket.on("muteUnmuteConversation",async(data) => {
     
 
     socket.on("disconnect", (reason) => {
-  
-      // loggerMsg("disconnect event hit...", "debug");
-      // console.log("disconnect event hit...");
-      // console.log("Reason for disconnect:", reason); // 🔥 this shows why socket disconnected
-      // console.log("==================>", JSON.stringify(userSocketMap));
       for (const userId in userSocketMap) {
           if (userSocketMap[userId] === socket.id) {
-              //  console.log("+++++++++++++++++++++++++++ User Disconnected +++++++++++++++++++++++++++", userId.toString());
-                // console.log(`Disconnected socket ID: ${socket.id}`);
-                // console.log(`Disconnect reason: ${reason}`);
-                // console.log(`Connected users before cleanup: \n${JSON.stringify(userSocketMap)}`);
-              
-                // Clean up
-                // delete userSocketMap[userId];
-                // socket.broadcast.emit("user-offline", { userId });
-
-                // console.log(`Connected users after cleanup: \n${JSON.stringify(userSocketMap)}`);
-                // break;
+                delete userSocketMap[userId];
           }
       }
     });
